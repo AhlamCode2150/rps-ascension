@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"></link>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<style>
+  :root {
+    --header-pad: 18px 48px;
+    --section-pad: 100px 48px;
+    --level-cols: 1.1fr 0.9fr;
+    --level-gap: 72px;
+    --level-num-size: 220px;
+    --footer-pad: 110px 48px 60px;
+    --profile-card-pad: 36px 40px;
+    --stats-cols: repeat(4, 1fr);
+    --char-cols: repeat(4, 1fr);
+    --arena-pad: 90px 24px 40px;
+    --vs-gap: 28px;
+  }
+  * { box-sizing: border-box; }
+  html { overflow-x: hidden; }
+  body { margin: 0; background: oklch(0.15 0.015 255); color: oklch(0.95 0.01 255); font-family: 'Inter', sans-serif; overflow-x: hidden; scroll-behavior: smooth; }
+  a { text-decoration: none; color: inherit; }
+  img, canvas, svg { max-width: 100%; }
+  @keyframes floatDot { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-16px); } }
+  @keyframes pulseGlow { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+  @keyframes scrollCue { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(10px); opacity: 0; } }
+  @keyframes gridDrift { from { background-position: 0 0; } to { background-position: 70px 70px; } }
+  @keyframes popIn { 0% { transform: scale(0.7); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  @keyframes moveReveal { 0% { transform: translateY(10px) scale(0.85); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+  @keyframes navPanelIn { 0% { opacity: 0; transform: translateY(-8px); } 100% { opacity: 1; transform: translateY(0); } }
+  .rps-move-btn { cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease; }
+  .rps-move-btn:hover { transform: translateY(-4px); }
+  .rps-move-btn:active { transform: translateY(-1px) scale(0.96); }
+  .char-tile { cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease; }
+  .char-tile:hover { transform: translateY(-3px); }
+  .rps-nametag-input::placeholder { color: oklch(0.55 0.01 255); }
+  .rps-nametag-input:focus { outline: none; border-color: oklch(0.72 0.17 230); }
+  .nav-hamburger { display: none; }
+  @media (max-width: 768px) {
+    :root {
+      --header-pad: 14px 20px;
+      --section-pad: 64px 20px;
+      --level-cols: 1fr;
+      --level-gap: 32px;
+      --level-num-size: 120px;
+      --footer-pad: 64px 20px 40px;
+      --profile-card-pad: 26px 22px;
+      --stats-cols: repeat(2, 1fr);
+      --char-cols: repeat(3, 1fr);
+      --arena-pad: 76px 16px 32px;
+      --vs-gap: 16px;
+    }
+    .nav-links-desktop { display: none !important; }
+    .nav-hamburger { display: flex !important; }
+  }
+  @media (max-width: 380px) {
+    .rps-move-btn { width: 64px !important; height: 64px !important; font-size: 28px !important; }
+  }
+</style>
+</helmet>
+
+<div style="position: relative; width: 100%; background: oklch(0.15 0.015 255);">
+
+  <sc-if value="{{ overlayOpen }}">
+  <div style="position: fixed; inset: 0; z-index: 100; background: {{ arenaBgGradient }}; overflow: hidden;">
+    <canvas id="arena-canvas" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.85;"></canvas>
+    <div style="position: absolute; inset: 0; background: linear-gradient(180deg, oklch(0.09 0.01 255 / 0.55), oklch(0.07 0.01 255 / 0.88)); pointer-events: none;"></div>
+
+    <button onClick="{{ closeGame }}" style="position: absolute; top: 22px; right: 26px; z-index: 6; width: 40px; height: 40px; border-radius: 50%; border: 1px solid oklch(1 0 0 / 0.2); background: oklch(0.15 0.01 255 / 0.6); color: oklch(0.95 0.01 255); font-size: 16px; cursor: pointer;">&#10005;</button>
+
+    <sc-if value="{{ screen === 'game' }}">
+      <div style="position: absolute; top: 24px; left: 26px; z-index: 6; display: flex; gap: 8px;">
+        <sc-for list="{{ levelDots }}" as="ld" hint-placeholder-count="7">
+          <div style="width: 9px; height: 9px; border-radius: 50%; background: {{ ld.color }}; border: 1px solid oklch(1 0 0 / 0.3);"></div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <div style="position: relative; z-index: 2; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--arena-pad); text-align: center;">
+
+      <sc-if value="{{ screen === 'setup' }}">
+        <div style="max-width: 560px; width: 100%;">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 13px; letter-spacing: 0.25em; color: oklch(0.72 0.15 230); font-weight: 600; margin-bottom: 14px;">BEFORE YOU ASCEND</div>
+          <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(26px, 8vw, 44px); font-weight: 700; margin: 0 0 28px;">Choose Your Fighter</h2>
+
+          <input type="text" class="rps-nametag-input" value="{{ playerName }}" onInput="{{ onNameInput }}" placeholder="Enter your nametag" maxlength="16" style="width: 100%; font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; color: oklch(0.95 0.01 255); background: oklch(0.16 0.015 255 / 0.7); border: 1px solid oklch(1 0 0 / 0.15); border-radius: 14px; padding: 14px 18px; margin-bottom: 22px; text-align: center;" />
+
+          <div style="display: grid; grid-template-columns: var(--char-cols); gap: 12px; margin-bottom: 30px;">
+            <sc-for list="{{ characters }}" as="ch" hint-placeholder-count="8">
+              <div onClick="{{ ch.select }}" class="char-tile" style="padding: 16px 8px; border-radius: 16px; background: {{ ch.bg }}; border: 2px solid {{ ch.border }};">
+                <div style="font-size: 30px; margin-bottom: 6px;">{{ ch.emoji }}</div>
+                <div style="font-size: 12px; font-weight: 600; color: oklch(0.85 0.01 255);">{{ ch.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <a href="#" onClick="{{ startGame }}" style="display: inline-block; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px; padding: 15px 40px; border-radius: 999px; background: oklch(0.72 0.17 230); color: oklch(0.12 0.02 230); opacity: {{ setupBtnOpacity }};">Begin Ascension</a>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ screen === 'game' }}">
+        <div style="max-width: 640px; width: 100%;">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.18em; color: {{ currentLevel.accent }}; font-weight: 600; margin-bottom: 10px;">LEVEL {{ currentLevel.num }} &mdash; {{ currentLevel.name }}</div>
+          <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(20px, 6vw, 34px); font-weight: 700; margin: 0 0 24px;">&ldquo;{{ currentLevel.quote }}&rdquo;</h2>
+
+          <div style="display: flex; align-items: center; justify-content: center; gap: var(--vs-gap); margin-bottom: 22px;">
+            <div style="text-align: center;">
+              <div style="width: 68px; height: 68px; border-radius: 50%; background: oklch(0.2 0.02 255); display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 8px; border: 2px solid oklch(1 0 0 / 0.15);">{{ playerAvatarEmoji }}</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 14px;">{{ playerName }}</div>
+              <div style="font-size: 12px; color: oklch(0.6 0.01 255);">{{ wins }} wins</div>
+            </div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; color: oklch(0.55 0.01 255);">VS</div>
+            <div style="text-align: center;">
+              <div style="width: 68px; height: 68px; border-radius: 50%; background: oklch(0.2 0.02 255); display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 8px; border: 2px solid {{ currentLevel.accent }};">{{ currentLevel.aiEmoji }}</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 14px;">{{ currentLevel.name }}</div>
+              <div style="font-size: 12px; color: oklch(0.6 0.01 255);">{{ losses }} wins</div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;">
+            <sc-for list="{{ scoreDots }}" as="sd" hint-placeholder-count="5">
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: {{ sd.color }};"></div>
+            </sc-for>
+          </div>
+
+          <div style="min-height: 60px; display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 20px;">
+            <div style="font-size: 40px;">{{ playerMoveEmoji }}</div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 600; color: {{ resultColor }};">{{ resultText }}</div>
+            <div style="font-size: 40px;">{{ aiMoveEmoji }}</div>
+          </div>
+
+          <sc-if value="{{ !matchOver }}">
+            <div style="display: flex; gap: 20px; justify-content: center; opacity: {{ movesOpacity }};">
+              <div onClick="{{ playRock }}" class="rps-move-btn" style="width: 76px; height: 76px; border-radius: 50%; background: oklch(0.2 0.02 255); border: 2px solid oklch(1 0 0 / 0.15); display: flex; align-items: center; justify-content: center; font-size: 34px;">&#129704;</div>
+              <div onClick="{{ playPaper }}" class="rps-move-btn" style="width: 76px; height: 76px; border-radius: 50%; background: oklch(0.2 0.02 255); border: 2px solid oklch(1 0 0 / 0.15); display: flex; align-items: center; justify-content: center; font-size: 34px;">&#9995;</div>
+              <div onClick="{{ playScissors }}" class="rps-move-btn" style="width: 76px; height: 76px; border-radius: 50%; background: oklch(0.2 0.02 255); border: 2px solid oklch(1 0 0 / 0.15); display: flex; align-items: center; justify-content: center; font-size: 34px;">&#9996;</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ canAdvance }}">
+            <div style="animation: popIn 0.4s ease;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: oklch(0.72 0.16 150); margin-bottom: 14px;">&#127881; Level Cleared</div>
+              <a href="#" onClick="{{ nextLevel }}" style="display: inline-block; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; padding: 13px 32px; border-radius: 999px; background: oklch(0.72 0.17 230); color: oklch(0.12 0.02 230);">{{ nextLevelLabel }}</a>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ canRetry }}">
+            <div style="animation: shake 0.4s ease;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; color: oklch(0.65 0.2 20); margin-bottom: 14px;">{{ currentLevel.name }} reads you too well.</div>
+              <a href="#" onClick="{{ retryLevel }}" style="display: inline-block; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; padding: 13px 32px; border-radius: 999px; border: 1px solid oklch(1 0 0 / 0.3);">Try Again</a>
+            </div>
+          </sc-if>
+
+          <div style="margin-top: 26px;">
+            <a href="#" onClick="{{ goToSetup }}" style="font-size: 12px; color: oklch(0.6 0.01 255);">Change nametag &amp; character</a>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ screen === 'victory' }}">
+        <div style="max-width: 500px;">
+          <div style="font-size: 56px; margin-bottom: 10px;">&#127942;</div>
+          <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(28px, 4vw, 40px); font-weight: 700; margin: 0 0 12px;">Ascension Complete</h2>
+          <p style="font-size: 16px; color: oklch(0.82 0.01 255); margin: 0 0 26px;">{{ playerName }} outthought all seven minds &mdash; {{ profileWinRate }}% win rate across {{ totalGames }} games.</p>
+          <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+            <a href="#" onClick="{{ playAgain }}" style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; padding: 13px 32px; border-radius: 999px; background: oklch(0.72 0.17 230); color: oklch(0.12 0.02 230);">Play Again</a>
+            <a href="#" onClick="{{ closeGame }}" style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; padding: 13px 32px; border-radius: 999px; border: 1px solid oklch(1 0 0 / 0.3);">Back to Site</a>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+  </sc-if>
+
+  <div style="position: fixed; inset: 0; z-index: 0; pointer-events: none;">
+    <sc-for list="{{ levels }}" as="level" hint-placeholder-count="7">
+      <div id="{{ level.backdropId }}" data-backdrop-layer="{{ level.id }}" style="position: absolute; inset: 0; opacity: 0; background: {{ level.bgGradient }};"></div>
+    </sc-for>
+  </div>
+
+  <header style="position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; padding: var(--header-pad); background: oklch(0.13 0.015 255 / 0.7); backdrop-filter: blur(14px); border-bottom: 1px solid oklch(1 0 0 / 0.06);">
+    <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.04em;">RPS<span style="color: oklch(0.72 0.15 230);">:</span> ASCENSION</div>
+    <nav class="nav-links-desktop" style="display: flex; align-items: center; gap: 32px;">
+      <a href="#hero" style="font-size: 14px; font-weight: 500; opacity: 0.85;" style-hover="opacity: 1;">Play</a>
+      <a href="#profile-footer" style="font-size: 14px; font-weight: 500; opacity: 0.85;" style-hover="opacity: 1;">Characters</a>
+      <a href="#level-observer" style="font-size: 14px; font-weight: 500; opacity: 0.85;" style-hover="opacity: 1;">Progress</a>
+      <a href="#profile-footer" style="font-size: 14px; font-weight: 500; opacity: 0.85;" style-hover="opacity: 1;">Achievements</a>
+      <a href="#hero" style="font-size: 14px; font-weight: 500; opacity: 0.85;" style-hover="opacity: 1;">Settings</a>
+      <a href="#" onClick="{{ openGame }}" style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 14px; padding: 10px 22px; border-radius: 999px; background: oklch(0.72 0.17 230); color: oklch(0.12 0.02 230);" style-hover="background: oklch(0.78 0.17 230);">Play Now</a>
+    </nav>
+    <button onClick="{{ toggleMobileNav }}" class="nav-hamburger" aria-label="Menu" style="width: 38px; height: 38px; border-radius: 10px; border: 1px solid oklch(1 0 0 / 0.15); background: oklch(0.18 0.015 255 / 0.6); color: oklch(0.95 0.01 255); font-size: 18px; align-items: center; justify-content: center; cursor: pointer;">
+      <sc-if value="{{ !mobileNavOpen }}"><span>&#9776;</span></sc-if>
+      <sc-if value="{{ mobileNavOpen }}"><span>&#10005;</span></sc-if>
+    </button>
+    <sc-if value="{{ mobileNavOpen }}">
+      <div style="position: absolute; top: 100%; left: 0; right: 0; z-index: 25; background: oklch(0.13 0.015 255 / 0.97); backdrop-filter: blur(14px); border-bottom: 1px solid oklch(1 0 0 / 0.08); padding: 12px 20px 20px; display: flex; flex-direction: column; gap: 4px; animation: navPanelIn 0.2s ease;">
+        <a href="#hero" onClick="{{ closeMobileNav }}" style="padding: 12px 4px; font-size: 15px; font-weight: 500;">Play</a>
+        <a href="#profile-footer" onClick="{{ closeMobileNav }}" style="padding: 12px 4px; font-size: 15px; font-weight: 500;">Characters</a>
+        <a href="#level-observer" onClick="{{ closeMobileNav }}" style="padding: 12px 4px; font-size: 15px; font-weight: 500;">Progress</a>
+        <a href="#profile-footer" onClick="{{ closeMobileNav }}" style="padding: 12px 4px; font-size: 15px; font-weight: 500;">Achievements</a>
+        <a href="#hero" onClick="{{ closeMobileNav }}" style="padding: 12px 4px; font-size: 15px; font-weight: 500;">Settings</a>
+        <a href="#" onClick="{{ mobileNavPlay }}" style="margin-top: 8px; text-align: center; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; padding: 12px 24px; border-radius: 999px; background: oklch(0.72 0.17 230); color: oklch(0.12 0.02 230);">Play Now</a>
+      </div>
+    </sc-if>
+  </header>
+
+  <section id="hero" style="position: relative; min-height: 100svh; display: flex; align-items: center; justify-content: center; overflow: hidden; z-index: 1;">
+    <canvas id="hero-canvas" style="position: absolute; inset: 0; width: 100%; height: 100%;"></canvas>
+    <div id="hero-light" style="position: absolute; top: 0; left: 0; width: 700px; height: 700px; margin-left: -350px; margin-top: -350px; border-radius: 50%; background: radial-gradient(circle, oklch(0.55 0.14 230 / 0.25), transparent 70%); pointer-events: none; filter: blur(10px);"></div>
+    <div style="position: relative; z-index: 2; text-align: center; max-width: 800px; padding: 0 24px;">
+      <div data-reveal="1" style="font-family: 'Space Grotesk', sans-serif; font-size: 13px; letter-spacing: 0.25em; color: oklch(0.72 0.15 230); font-weight: 600; margin-bottom: 20px;">A ROGUELIKE MIND GAME</div>
+      <h1 data-reveal="1" style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(36px, 10vw, 92px); font-weight: 700; line-height: 1.02; margin: 0 0 24px;">Outthink the<br/>Machine</h1>
+      <p data-reveal="1" style="font-size: 18px; line-height: 1.6; color: oklch(0.85 0.01 255); margin: 0 auto 36px; max-width: 560px;">Rock, Paper, Scissors&mdash;reborn. Climb through seven AI minds, each one learning your habits faster than the last.</p>
+      <div data-reveal="1" style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <a href="#" onClick="{{ openGame }}" style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px; padding: 16px 36px; border-radius: 999px; background: oklch(0.72 0.17 230); color: oklch(0.12 0.02 230);" style-hover="background: oklch(0.78 0.17 230); transform: translateY(-2px);">Play Now</a>
+        <a href="#level-rookie" style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px; padding: 16px 36px; border-radius: 999px; border: 1px solid oklch(1 0 0 / 0.25);" style-hover="border-color: oklch(1 0 0 / 0.5);">Meet the AI</a>
+      </div>
+    </div>
+    <div style="position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%); width: 22px; height: 34px; border: 2px solid oklch(1 0 0 / 0.4); border-radius: 12px; z-index: 2;">
+      <div style="width: 4px; height: 8px; background: oklch(1 0 0 / 0.6); border-radius: 2px; margin: 6px auto 0; animation: scrollCue 1.6s ease-in-out infinite;"></div>
+    </div>
+  </section>
+
+  <sc-for list="{{ levels }}" as="level" hint-placeholder-count="7">
+    <section id="{{ level.id }}" style="position: relative; min-height: 100vh; display: flex; align-items: center; z-index: 1; padding: var(--section-pad);">
+      <div style="max-width: 1180px; margin: 0 auto; width: 100%; display: grid; grid-template-columns: var(--level-cols); gap: var(--level-gap); align-items: center;">
+        <div>
+          <div data-reveal="1" style="display: inline-flex; align-items: center; gap: 10px; font-family: 'Space Grotesk', sans-serif; font-size: 13px; letter-spacing: 0.18em; font-weight: 600; color: {{ level.accent }}; margin-bottom: 22px;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: {{ level.accent }};"></span>
+            <sc-if value="{{ level.isBoss }}"><span>FINAL BOSS &mdash; LEVEL {{ level.num }}</span></sc-if>
+            <sc-if value="{{ level.isNotBoss }}"><span>LEVEL {{ level.num }}</span></sc-if>
+          </div>
+          <h2 data-reveal="1" style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 8vw, 60px); font-weight: 700; margin: 0 0 20px; line-height: 1.05;">{{ level.name }}</h2>
+          <p data-reveal="1" style="font-family: 'Space Grotesk', sans-serif; font-style: italic; font-size: 20px; color: {{ level.accent }}; margin: 0 0 22px;">&ldquo;{{ level.quote }}&rdquo;</p>
+          <p data-reveal="1" style="font-size: 17px; line-height: 1.7; color: oklch(0.82 0.01 255); max-width: 460px; margin: 0 0 24px;">{{ level.desc }}</p>
+          <div data-reveal="1" style="font-size: 13px; letter-spacing: 0.1em; color: oklch(0.6 0.01 255); text-transform: uppercase;">Environment &mdash; {{ level.environment }}</div>
+        </div>
+
+        <div data-reveal="1" onMouseMove="{{ handleTilt }}" onMouseLeave="{{ resetTilt }}" style="position: relative; aspect-ratio: 4 / 5; border-radius: 28px; overflow: hidden; background: {{ level.cardGradient }}; transform-style: preserve-3d; will-change: transform;">
+          <div style="position: absolute; inset: 0; opacity: 0.35; background-image: linear-gradient(oklch(1 0 0 / 0.06) 1px, transparent 1px), linear-gradient(90deg, oklch(1 0 0 / 0.06) 1px, transparent 1px); background-size: 34px 34px; animation: gridDrift 12s linear infinite;"></div>
+          <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: var(--level-num-size); font-weight: 700; color: oklch(1 0 0 / 0.06); user-select: none;">{{ level.num }}</div>
+          <sc-for list="{{ dots }}" as="dot" hint-placeholder-count="10">
+            <div style="position: absolute; top: {{ dot.top }}; left: {{ dot.left }}; width: {{ dot.size }}; height: {{ dot.size }}; border-radius: 50%; background: {{ level.accent }}; opacity: 0.6; filter: blur(1px); animation: floatDot {{ dot.duration }} ease-in-out infinite; animation-delay: {{ dot.delay }};"></div>
+          </sc-for>
+          <sc-if value="{{ level.isBoss }}" hint-placeholder-val="{{ false }}">
+            <canvas id="singularity-canvas" style="position: absolute; inset: 0; width: 100%; height: 100%;"></canvas>
+          </sc-if>
+          <div style="position: absolute; left: 20px; right: 20px; bottom: 20px; padding: 14px 16px; border-radius: 14px; background: oklch(0.1 0.01 255 / 0.55); backdrop-filter: blur(6px); border: 1px solid oklch(1 0 0 / 0.08);">
+            <div style="font-family: monospace; font-size: 11px; letter-spacing: 0.08em; color: oklch(0.65 0.01 255); text-transform: uppercase;">AI Portrait &mdash; {{ level.name }} (drop art here)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </sc-for>
+
+  <section id="profile-footer" style="position: relative; z-index: 1; padding: var(--footer-pad);">
+    <div style="max-width: 1180px; margin: 0 auto;">
+      <div data-reveal="1" style="text-align: center; margin-bottom: 56px;">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 13px; letter-spacing: 0.25em; color: oklch(0.72 0.15 230); font-weight: 600; margin-bottom: 16px;">YOUR JOURNEY SO FAR</div>
+        <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(32px, 4.5vw, 52px); font-weight: 700; margin: 0;">Every Match Writes Your Profile</h2>
+      </div>
+
+      <div data-reveal="1" onMouseMove="{{ handleTilt }}" onMouseLeave="{{ resetTilt }}" style="max-width: 640px; margin: 0 auto 56px; padding: var(--profile-card-pad); border-radius: 28px; background: linear-gradient(160deg, oklch(0.22 0.03 255), oklch(0.13 0.015 255)); border: 1px solid oklch(1 0 0 / 0.08); transform-style: preserve-3d; will-change: transform;">
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 28px;">
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: oklch(0.26 0.03 255); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 30px;">{{ profileAvatar }}</div>
+          <div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px;">{{ profileName }}</div>
+            <div style="font-size: 13px; color: oklch(0.65 0.01 255);">{{ profileFacing }}</div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: var(--stats-cols); gap: 18px; text-align: center;">
+          <div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: oklch(0.72 0.15 20);">{{ profileWinRate }}%</div>
+            <div style="font-size: 12px; color: oklch(0.6 0.01 255); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px;">Win Rate</div>
+          </div>
+          <div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: oklch(0.72 0.15 20);">{{ profileFavoriteMove }}</div>
+            <div style="font-size: 12px; color: oklch(0.6 0.01 255); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px;">Favorite Move</div>
+          </div>
+          <div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: oklch(0.72 0.15 20);">{{ profileStreak }}</div>
+            <div style="font-size: 12px; color: oklch(0.6 0.01 255); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px;">Current Streak</div>
+          </div>
+          <div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: oklch(0.72 0.15 20);">{{ profileGamesPlayed }}</div>
+            <div style="font-size: 12px; color: oklch(0.6 0.01 255); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px;">Games Played</div>
+          </div>
+        </div>
+      </div>
+
+      <div data-reveal="1" style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 72px;">
+        <div style="padding: 10px 18px; border-radius: 999px; background: oklch(0.2 0.02 255); border: 1px solid oklch(1 0 0 / 0.08); font-size: 14px;">&#127942; First Victory</div>
+        <div style="padding: 10px 18px; border-radius: 999px; background: oklch(0.2 0.02 255); border: 1px solid oklch(1 0 0 / 0.08); font-size: 14px;">&#128293; 10 Win Streak</div>
+        <div style="padding: 10px 18px; border-radius: 999px; background: oklch(0.2 0.02 255); border: 1px solid oklch(1 0 0 / 0.08); font-size: 14px;">&#129504; Outsmarted Analyst</div>
+        <div style="padding: 10px 18px; border-radius: 999px; background: oklch(0.2 0.02 255); border: 1px solid oklch(1 0 0 / 0.08); font-size: 14px;">&#9889; Perfect Match</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 28px; padding-top: 40px; border-top: 1px solid oklch(1 0 0 / 0.08);">
+        <a href="#" onClick="{{ openGame }}" style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px; padding: 16px 40px; border-radius: 999px; background: oklch(0.72 0.17 230); color: oklch(0.12 0.02 230);" style-hover="background: oklch(0.78 0.17 230);">Play Now</a>
+        <nav style="display: flex; gap: 28px; flex-wrap: wrap; justify-content: center;">
+          <a href="#hero" style="font-size: 14px; opacity: 0.75;" style-hover="opacity: 1;">Play</a>
+          <a href="#profile-footer" style="font-size: 14px; opacity: 0.75;" style-hover="opacity: 1;">Characters</a>
+          <a href="#level-observer" style="font-size: 14px; opacity: 0.75;" style-hover="opacity: 1;">Progress</a>
+          <a href="#profile-footer" style="font-size: 14px; opacity: 0.75;" style-hover="opacity: 1;">Achievements</a>
+          <a href="#hero" style="font-size: 14px; opacity: 0.75;" style-hover="opacity: 1;">Settings</a>
+        </nav>
+        <div style="font-size: 13px; color: oklch(0.55 0.01 255);">&copy; 2026 RPS: Ascension</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const MOVES = ['rock', 'paper', 'scissors'];
+const BEATS = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
+const COUNTER = { rock: 'paper', paper: 'scissors', scissors: 'rock' };
+const MOVE_EMOJI = { rock: '\u{1FAA8}', paper: '✋', scissors: '✌️' };
+const LEVEL_COUNT = 7;
+const SAVE_KEY = 'rps-ascension-save';
+
+const CHAR_LIST = [
+  { id: 'ghost', emoji: '\u{1F47B}', label: 'Ghost' },
+  { id: 'knight', emoji: '\u{1F6E1}️', label: 'Knight' },
+  { id: 'robot', emoji: '\u{1F916}', label: 'Robot' },
+  { id: 'ninja', emoji: '\u{1F977}', label: 'Ninja' },
+  { id: 'wizard', emoji: '\u{1F9D9}', label: 'Wizard' },
+  { id: 'dragon', emoji: '\u{1F409}', label: 'Dragon' },
+  { id: 'cat', emoji: '\u{1F431}', label: 'Cat' },
+  { id: 'alien', emoji: '\u{1F47D}', label: 'Alien' },
+];
+
+const ARENA_THEMES = [
+  { shape: 'circle', color: '#7dc4ff', direction: 'up', speed: 0.35, sizeMin: 2, sizeMax: 5 },
+  { shape: 'circle', color: '#4ade80', direction: 'down', speed: 0.28, sizeMin: 2, sizeMax: 4 },
+  { shape: 'line', color: '#c084fc', direction: 'down', speed: 1.4, sizeMin: 6, sizeMax: 16 },
+  { shape: 'triangle', color: '#fb923c', direction: 'up', speed: 0.6, sizeMin: 4, sizeMax: 9 },
+  { shape: 'ring', color: '#f87171', direction: 'out', speed: 0.6, sizeMin: 6, sizeMax: 6 },
+  { shape: 'bar', color: '#22d3ee', direction: 'left', speed: 1.3, sizeMin: 20, sizeMax: 70 },
+  { shape: 'star', color: '#a78bfa', direction: 'rotate', speed: 1, sizeMin: 2, sizeMax: 6 },
+];
+
+function judge(player, ai) {
+  if (player === ai) return 'tie';
+  return BEATS[player] === ai ? 'win' : 'lose';
+}
+
+function randomMove() {
+  return MOVES[Math.floor(Math.random() * 3)];
+}
+
+function mostFrequent(history) {
+  if (!history.length) return null;
+  const tally = { rock: 0, paper: 0, scissors: 0 };
+  history.forEach((m) => tally[m]++);
+  return Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0];
+}
+
+function predictByLastRepeat(history) {
+  if (history.length < 2) return null;
+  const last = history[history.length - 1];
+  for (let i = history.length - 2; i >= 0; i--) {
+    if (history[i] === last && i + 1 < history.length) return history[i + 1];
+  }
+  return null;
+}
+
+function predictByBigram(history) {
+  if (history.length < 3) return null;
+  const a = history[history.length - 2];
+  const b = history[history.length - 1];
+  for (let i = history.length - 3; i >= 0; i--) {
+    if (history[i] === a && history[i + 1] === b && i + 2 < history.length) return history[i + 2];
+  }
+  return null;
+}
+
+function pickAIMove(levelIdx, history, fullHistory) {
+  switch (levelIdx) {
+    case 0:
+      return randomMove();
+    case 1: {
+      const h = history;
+      if (h.length >= 2 && h[h.length - 1] === h[h.length - 2]) return COUNTER[h[h.length - 1]];
+      return randomMove();
+    }
+    case 2: {
+      const f = mostFrequent(history);
+      return f ? COUNTER[f] : randomMove();
+    }
+    case 3: {
+      const f = mostFrequent(history);
+      if (f && Math.random() < 0.7) return COUNTER[f];
+      return randomMove();
+    }
+    case 4: {
+      const p = predictByLastRepeat(history) || mostFrequent(history);
+      if (p && Math.random() < 0.85) return COUNTER[p];
+      return randomMove();
+    }
+    case 5: {
+      const votes = [predictByBigram(history), predictByLastRepeat(history), mostFrequent(history)].filter(Boolean);
+      if (votes.length) {
+        const tally = {};
+        votes.forEach((v) => (tally[v] = (tally[v] || 0) + 1));
+        const best = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0];
+        return COUNTER[best];
+      }
+      return randomMove();
+    }
+    case 6: {
+      const p = predictByBigram(fullHistory) || predictByLastRepeat(fullHistory) || mostFrequent(fullHistory);
+      if (p && Math.random() < 0.92) return COUNTER[p];
+      return randomMove();
+    }
+    default:
+      return randomMove();
+  }
+}
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this._tiltSetters = new WeakMap();
+    const saved = this._loadSave();
+    this.state = {
+      overlayOpen: false,
+      mobileNavOpen: false,
+      screen: 'setup',
+      playerName: (saved && saved.playerName) || '',
+      playerChar: (saved && saved.playerChar) || null,
+      levelIndex: (saved && saved.unlockedIndex) || 0,
+      unlockedIndex: (saved && saved.unlockedIndex) || 0,
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      roundLog: [],
+      roundBusy: false,
+      roundResult: null,
+      playerMove: null,
+      aiMove: null,
+      matchOver: false,
+      levelWon: false,
+      history: [],
+      fullHistory: (saved && saved.fullHistory) || [],
+      totalGames: (saved && saved.totalGames) || 0,
+      totalWins: (saved && saved.totalWins) || 0,
+      streak: (saved && saved.streak) || 0,
+      moveTally: (saved && saved.moveTally) || { rock: 0, paper: 0, scissors: 0 },
+    };
+    this._arenaActive = false;
+  }
+
+  componentDidMount() {
+    this._waitForLibs();
+  }
+
+  componentDidUpdate() {
+    const open = this.state.overlayOpen;
+    if (open && !this._arenaActive) {
+      this._arenaActive = true;
+      this._initArenaCanvas();
+    } else if (!open && this._arenaActive) {
+      this._arenaActive = false;
+      this._stopArenaCanvas();
+    }
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this._pollId);
+    clearTimeout(this._roundTimeout);
+    cancelAnimationFrame(this._heroRaf);
+    cancelAnimationFrame(this._singRaf);
+    this._stopArenaCanvas();
+    if (this._heroResize) window.removeEventListener('resize', this._heroResize);
+    if (this._singResize) window.removeEventListener('resize', this._singResize);
+  }
+
+  _loadSave() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  _persist() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        playerName: this.state.playerName,
+        playerChar: this.state.playerChar,
+        unlockedIndex: this.state.unlockedIndex,
+        totalGames: this.state.totalGames,
+        totalWins: this.state.totalWins,
+        streak: this.state.streak,
+        moveTally: this.state.moveTally,
+        fullHistory: this.state.fullHistory.slice(-60),
+      }));
+    } catch (e) {
+      /* storage unavailable */
+    }
+  }
+
+  openGame(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const hasProfile = !!(this.state.playerName && this.state.playerChar);
+    this.setState({
+      overlayOpen: true,
+      screen: hasProfile ? 'game' : 'setup',
+      levelIndex: hasProfile ? this.state.unlockedIndex : this.state.levelIndex,
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      roundLog: [],
+      roundBusy: false,
+      roundResult: null,
+      playerMove: null,
+      aiMove: null,
+      matchOver: false,
+      levelWon: false,
+      history: [],
+    });
+  }
+
+  closeGame(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    this.setState({ overlayOpen: false });
+  }
+
+  toggleMobileNav(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    this.setState({ mobileNavOpen: !this.state.mobileNavOpen });
+  }
+
+  closeMobileNav() {
+    this.setState({ mobileNavOpen: false });
+  }
+
+  mobileNavPlay(e) {
+    this.closeMobileNav();
+    this.openGame(e);
+  }
+
+  goToSetup(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    this.setState({ screen: 'setup' });
+  }
+
+  selectCharacter(id) {
+    this.setState({ playerChar: id });
+    this._persist();
+  }
+
+  onNameInput(e) {
+    this.setState({ playerName: e.target.value.slice(0, 16) });
+  }
+
+  startGame(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!this.state.playerName.trim() || !this.state.playerChar) return;
+    this.setState({
+      screen: 'game',
+      levelIndex: this.state.unlockedIndex,
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      roundLog: [],
+      roundBusy: false,
+      roundResult: null,
+      playerMove: null,
+      aiMove: null,
+      matchOver: false,
+      levelWon: false,
+      history: [],
+    });
+    this._persist();
+  }
+
+  playRock(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    this.playMove('rock');
+  }
+
+  playPaper(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    this.playMove('paper');
+  }
+
+  playScissors(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    this.playMove('scissors');
+  }
+
+  playMove(move) {
+    if (this.state.roundBusy || this.state.matchOver) return;
+    this.setState({ playerMove: move, aiMove: null, roundBusy: true, roundResult: null });
+    clearTimeout(this._roundTimeout);
+    this._roundTimeout = setTimeout(() => this._resolveRound(move), 550);
+  }
+
+  _resolveRound(move) {
+    const levelIdx = this.state.levelIndex;
+    const aiMove = pickAIMove(levelIdx, this.state.history, this.state.fullHistory);
+    const result = judge(move, aiMove);
+    const history = [...this.state.history, move].slice(-20);
+    const fullHistory = [...this.state.fullHistory, move].slice(-60);
+    const moveTally = { ...this.state.moveTally, [move]: (this.state.moveTally[move] || 0) + 1 };
+    let wins = this.state.wins;
+    let losses = this.state.losses;
+    let ties = this.state.ties;
+    if (result === 'win') wins++;
+    else if (result === 'lose') losses++;
+    else ties++;
+    const totalGames = this.state.totalGames + (result === 'tie' ? 0 : 1);
+    const totalWins = this.state.totalWins + (result === 'win' ? 1 : 0);
+    const streak = result === 'win' ? this.state.streak + 1 : 0;
+    const matchOver = wins >= 3 || losses >= 3;
+    const levelWon = wins >= 3;
+    let unlockedIndex = this.state.unlockedIndex;
+    if (levelWon) unlockedIndex = Math.max(unlockedIndex, Math.min(levelIdx + 1, LEVEL_COUNT - 1));
+    this.setState({
+      aiMove,
+      roundResult: result,
+      roundBusy: false,
+      roundLog: [...this.state.roundLog, result],
+      history,
+      fullHistory,
+      moveTally,
+      wins,
+      losses,
+      ties,
+      totalGames,
+      totalWins,
+      streak,
+      matchOver,
+      levelWon,
+      unlockedIndex,
+    });
+    this._persist();
+  }
+
+  nextLevel(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!(this.state.matchOver && this.state.levelWon)) return;
+    const next = this.state.levelIndex + 1;
+    if (next >= LEVEL_COUNT) {
+      this.setState({ screen: 'victory' });
+      return;
+    }
+    this.setState({
+      levelIndex: next,
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      roundLog: [],
+      matchOver: false,
+      levelWon: false,
+      roundResult: null,
+      playerMove: null,
+      aiMove: null,
+      history: [],
+    });
+    this._persist();
+  }
+
+  retryLevel(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    this.setState({
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      roundLog: [],
+      matchOver: false,
+      levelWon: false,
+      roundResult: null,
+      playerMove: null,
+      aiMove: null,
+      history: [],
+    });
+  }
+
+  playAgain(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    this.setState({
+      screen: 'game',
+      levelIndex: 0,
+      unlockedIndex: 0,
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      roundLog: [],
+      matchOver: false,
+      levelWon: false,
+      roundResult: null,
+      playerMove: null,
+      aiMove: null,
+      history: [],
+    });
+    this._persist();
+  }
+
+  _initArenaCanvas() {
+    const canvas = document.getElementById('arena-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const resize = () => {
+      const r = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(1, r.width * dpr);
+      canvas.height = Math.max(1, r.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    window.addEventListener('resize', resize);
+    this._arenaResize = resize;
+
+    const particles = Array.from({ length: 70 }, () => ({ _theme: null }));
+    const initParticle = (p, theme, w, h) => {
+      p.size = theme.sizeMin + Math.random() * (theme.sizeMax - theme.sizeMin);
+      p.speed = theme.speed * (0.6 + Math.random() * 0.8);
+      p.rot = Math.random() * Math.PI * 2;
+      p.spin = (Math.random() - 0.5) * 0.02;
+      p.alpha = 0.3 + Math.random() * 0.5;
+      if (theme.direction === 'up') { p.x = Math.random() * w; p.y = h + Math.random() * h; }
+      else if (theme.direction === 'down') { p.x = Math.random() * w; p.y = -Math.random() * h; }
+      else if (theme.direction === 'left') { p.x = w + Math.random() * w; p.y = Math.random() * h; }
+      else if (theme.direction === 'out') {
+        p.cx = w / 2; p.cy = h / 2; p.angle = Math.random() * Math.PI * 2; p.radius = Math.random() * Math.max(w, h) * 0.5;
+      } else if (theme.direction === 'rotate') {
+        p.cx = w / 2; p.cy = h / 2; p.angle = Math.random() * Math.PI * 2; p.radius = Math.random() * Math.min(w, h) * 0.48;
+      } else { p.x = Math.random() * w; p.y = Math.random() * h; }
+    };
+    const updateParticle = (p, theme, w, h) => {
+      if (theme.direction === 'up') { p.y -= p.speed; if (p.y < -20) { p.y = h + 20; p.x = Math.random() * w; } }
+      else if (theme.direction === 'down') { p.y += p.speed; if (p.y > h + 20) { p.y = -20; p.x = Math.random() * w; } }
+      else if (theme.direction === 'left') { p.x -= p.speed * 2; if (p.x < -40) { p.x = w + 40; p.y = Math.random() * h; } }
+      else if (theme.direction === 'out') {
+        p.radius += p.speed; p.alpha -= 0.004;
+        if (p.alpha <= 0 || p.radius > Math.max(w, h) * 0.6) { p.radius = 0; p.alpha = 0.5 + Math.random() * 0.3; p.angle = Math.random() * Math.PI * 2; }
+        p.x = p.cx + Math.cos(p.angle) * p.radius; p.y = p.cy + Math.sin(p.angle) * p.radius;
+      } else if (theme.direction === 'rotate') {
+        p.angle += p.speed * 0.004;
+        p.x = p.cx + Math.cos(p.angle) * p.radius; p.y = p.cy + Math.sin(p.angle) * p.radius;
+      }
+      p.rot += p.spin;
+    };
+    const drawParticle = (p, theme) => {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = theme.color;
+      ctx.strokeStyle = theme.color;
+      ctx.lineWidth = 2;
+      if (theme.shape === 'circle') { ctx.beginPath(); ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2); ctx.fill(); }
+      else if (theme.shape === 'triangle') { ctx.beginPath(); ctx.moveTo(0, -p.size / 2); ctx.lineTo(p.size / 2, p.size / 2); ctx.lineTo(-p.size / 2, p.size / 2); ctx.closePath(); ctx.fill(); }
+      else if (theme.shape === 'line') { ctx.beginPath(); ctx.moveTo(0, -p.size); ctx.lineTo(0, p.size); ctx.stroke(); }
+      else if (theme.shape === 'ring') { ctx.beginPath(); ctx.arc(0, 0, p.size, 0, Math.PI * 2); ctx.stroke(); }
+      else if (theme.shape === 'bar') { ctx.fillRect(-2, -p.size, 4, p.size * 2); }
+      else if (theme.shape === 'star') {
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          const a = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+          const r = i % 2 === 0 ? p.size / 2 : p.size / 4;
+          const px = Math.cos(a) * r, py = Math.sin(a) * r;
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    };
+
+    const loop = () => {
+      this._arenaRaf = requestAnimationFrame(loop);
+      const theme = ARENA_THEMES[this.state.levelIndex] || ARENA_THEMES[0];
+      const w = canvas.width / dpr, h = canvas.height / dpr;
+      ctx.clearRect(0, 0, w, h);
+      particles.forEach((p) => {
+        if (p._theme !== theme) { initParticle(p, theme, w, h); p._theme = theme; }
+        updateParticle(p, theme, w, h);
+        drawParticle(p, theme);
+      });
+    };
+    this._arenaRaf = requestAnimationFrame(loop);
+  }
+
+  _stopArenaCanvas() {
+    cancelAnimationFrame(this._arenaRaf);
+    if (this._arenaResize) window.removeEventListener('resize', this._arenaResize);
+  }
+
+  _waitForLibs() {
+    if (window.gsap && window.ScrollTrigger && window.THREE) {
+      this._initAll();
+    } else {
+      this._pollId = setTimeout(() => this._waitForLibs(), 50);
+    }
+  }
+
+  _initAll() {
+    gsap.registerPlugin(ScrollTrigger);
+    this._initReveals();
+    this._initBackdrop();
+    this._initHeroLight();
+    this._initHeroScene();
+    this._initSingularityScene();
+  }
+
+  _initReveals() {
+    document.querySelectorAll('section[id]').forEach((sec) => {
+      const els = sec.querySelectorAll('[data-reveal]');
+      if (!els.length) return;
+      gsap.fromTo(
+        els,
+        { y: 46, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 1,
+          ease: 'power3.out',
+          stagger: 0.12,
+          scrollTrigger: { trigger: sec, start: 'top 78%' },
+        }
+      );
+    });
+  }
+
+  _initBackdrop() {
+    document.querySelectorAll('[data-backdrop-layer]').forEach((layer) => {
+      const id = layer.getAttribute('data-backdrop-layer');
+      const sec = document.getElementById(id);
+      if (!sec) return;
+      ScrollTrigger.create({
+        trigger: sec,
+        start: 'top center',
+        end: 'bottom center',
+        onEnter: () => gsap.to(layer, { opacity: 1, duration: 0.8, overwrite: true }),
+        onLeave: () => gsap.to(layer, { opacity: 0, duration: 0.8, overwrite: true }),
+        onEnterBack: () => gsap.to(layer, { opacity: 1, duration: 0.8, overwrite: true }),
+        onLeaveBack: () => gsap.to(layer, { opacity: 0, duration: 0.8, overwrite: true }),
+      });
+    });
+  }
+
+  _initHeroLight() {
+    const hero = document.getElementById('hero');
+    const light = document.getElementById('hero-light');
+    if (!hero || !light) return;
+    const setX = gsap.quickTo(light, 'x', { duration: 0.6, ease: 'power3' });
+    const setY = gsap.quickTo(light, 'y', { duration: 0.6, ease: 'power3' });
+    hero.addEventListener('mousemove', (e) => {
+      const r = hero.getBoundingClientRect();
+      setX(e.clientX - r.left);
+      setY(e.clientY - r.top);
+    });
+  }
+
+  handleTilt(e) {
+    if (!window.gsap) return;
+    const card = e.currentTarget;
+    const r = card.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    if (!this._tiltSetters.has(card)) {
+      this._tiltSetters.set(card, {
+        rx: gsap.quickTo(card, 'rotateX', { duration: 0.5, ease: 'power3' }),
+        ry: gsap.quickTo(card, 'rotateY', { duration: 0.5, ease: 'power3' }),
+      });
+    }
+    const s = this._tiltSetters.get(card);
+    s.ry(px * 14);
+    s.rx(-py * 14);
+  }
+
+  resetTilt(e) {
+    const s = this._tiltSetters.get(e.currentTarget);
+    if (s) { s.rx(0); s.ry(0); }
+  }
+
+  _createRenderer(canvas) {
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    return renderer;
+  }
+
+  _initHeroScene() {
+    const canvas = document.getElementById('hero-canvas');
+    if (!canvas) return;
+    const container = canvas.parentElement;
+    const renderer = this._createRenderer(canvas);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    camera.position.set(0, 0, 9);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const key = new THREE.PointLight(0x66aaff, 2.2, 60); key.position.set(5, 5, 5); scene.add(key);
+    const rim = new THREE.PointLight(0xff8844, 1.1, 60); rim.position.set(-6, -3, 4); scene.add(rim);
+
+    const group = new THREE.Group();
+    const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(0.85, 0), new THREE.MeshStandardMaterial({ color: 0x8fb8ff, roughness: 0.35, metalness: 0.4 }));
+    rock.position.set(-4.6, 0.4, -1);
+    group.add(rock);
+
+    const paper = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.6, 0.08, 4, 4), new THREE.MeshStandardMaterial({ color: 0xf3f3ea, roughness: 0.6, metalness: 0.1, transparent: true, opacity: 0.7 }));
+    paper.position.set(-4.6, 2.6, -1.5);
+    group.add(paper);
+
+    const scissors = new THREE.Group();
+    const bladeMat = new THREE.MeshStandardMaterial({ color: 0xd8dde3, roughness: 0.25, metalness: 0.7 });
+    const b1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 1.5, 4, 8), bladeMat); b1.rotation.z = Math.PI / 4;
+    const b2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 1.5, 4, 8), bladeMat); b2.rotation.z = -Math.PI / 4;
+    scissors.add(b1, b2);
+    scissors.position.set(4.6, 0.2, -1);
+    group.add(scissors);
+    scene.add(group);
+
+    const count = 180;
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 14;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 8;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+    }
+    const pGeo = new THREE.BufferGeometry();
+    pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({ color: 0x88bbff, size: 0.035, transparent: true, opacity: 0.7 }));
+    scene.add(particles);
+
+    let mouseX = 0, mouseY = 0;
+    container.addEventListener('mousemove', (e) => {
+      const r = container.getBoundingClientRect();
+      mouseX = (e.clientX - r.left) / r.width - 0.5;
+      mouseY = (e.clientY - r.top) / r.height - 0.5;
+    });
+
+    const resize = () => {
+      const r = container.getBoundingClientRect();
+      renderer.setSize(r.width, r.height, false);
+      camera.aspect = r.width / Math.max(r.height, 1);
+      camera.updateProjectionMatrix();
+    };
+    resize();
+    window.addEventListener('resize', resize);
+    this._heroResize = resize;
+
+    const clock = new THREE.Clock();
+    const animate = () => {
+      this._heroRaf = requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      group.rotation.y += 0.0025;
+      rock.position.y = 0.4 + Math.sin(t * 1.2) * 0.15;
+      paper.position.y = 2.6 + Math.sin(t * 1.4 + 1) * 0.15;
+      scissors.position.y = 0.2 + Math.sin(t * 1.1 + 2) * 0.15;
+      particles.rotation.y += 0.0006;
+      camera.position.x += (mouseX * 2 - camera.position.x) * 0.03;
+      camera.position.y += (-mouseY * 1.2 - camera.position.y) * 0.03;
+      camera.lookAt(0, 0, 0);
+      renderer.render(scene, camera);
+    };
+    animate();
+  }
+
+  _initSingularityScene() {
+    const canvas = document.getElementById('singularity-canvas');
+    if (!canvas) return;
+    const container = canvas.parentElement;
+    const renderer = this._createRenderer(canvas);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+    camera.position.set(0, 0, 8);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    const p1 = new THREE.PointLight(0x66e6ff, 2, 50); p1.position.set(4, 3, 5); scene.add(p1);
+    const p2 = new THREE.PointLight(0xb388ff, 1.5, 50); p2.position.set(-4, -2, 4); scene.add(p2);
+
+    const core = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1, 1),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x66e6ff, emissiveIntensity: 0.6, roughness: 0.2, metalness: 0.6 })
+    );
+    const group = new THREE.Group();
+    group.add(core);
+
+    const nCount = 130;
+    const pts = [];
+    const positions = new Float32Array(nCount * 3);
+    for (let i = 0; i < nCount; i++) {
+      const v = new THREE.Vector3().randomDirection().multiplyScalar(2.2 + Math.random() * 2.2);
+      positions[i * 3] = v.x; positions[i * 3 + 1] = v.y; positions[i * 3 + 2] = v.z;
+      pts.push(v);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const points = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0x9fd8ff, size: 0.05, transparent: true, opacity: 0.85 }));
+    group.add(points);
+
+    const lineVerts = [];
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        if (pts[i].distanceTo(pts[j]) < 1.3) {
+          lineVerts.push(pts[i].x, pts[i].y, pts[i].z, pts[j].x, pts[j].y, pts[j].z);
+        }
+      }
+    }
+    const lineGeo = new THREE.BufferGeometry();
+    lineGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lineVerts), 3));
+    const lines = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: 0x6fa8ff, transparent: true, opacity: 0.18 }));
+    group.add(lines);
+
+    scene.add(group);
+
+    const resize = () => {
+      const r = container.getBoundingClientRect();
+      renderer.setSize(r.width, r.height, false);
+      camera.aspect = r.width / Math.max(r.height, 1);
+      camera.updateProjectionMatrix();
+    };
+    resize();
+    window.addEventListener('resize', resize);
+    this._singResize = resize;
+
+    const clock = new THREE.Clock();
+    const animate = () => {
+      this._singRaf = requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      group.rotation.y += 0.0018;
+      group.rotation.x = Math.sin(t * 0.15) * 0.1;
+      core.material.emissiveIntensity = 0.5 + Math.sin(t * 2) * 0.25;
+      renderer.render(scene, camera);
+    };
+    animate();
+  }
+
+  renderVals() {
+    const levels = [
+      { id: 'level-rookie', backdropId: 'bd-rookie', num: 1, name: 'Rookie', quote: 'Good luck!', desc: 'Completely random. No pattern to find—this AI just helps you learn the ropes.', environment: 'Open sky, drifting clouds', accent: 'oklch(0.72 0.15 230)', bgGradient: 'linear-gradient(160deg, oklch(0.24 0.05 230), oklch(0.13 0.02 230))', cardGradient: 'linear-gradient(160deg, oklch(0.28 0.06 230), oklch(0.15 0.03 230))', isBoss: false, isNotBoss: true, aiEmoji: '\u{1F3B2}' },
+      { id: 'level-observer', backdropId: 'bd-observer', num: 2, name: 'Observer', quote: "You've played Rock three times already.", desc: 'Starts noticing repeated moves and punishes obvious patterns.', environment: 'Forest glow, watching eyes', accent: 'oklch(0.72 0.15 150)', bgGradient: 'linear-gradient(160deg, oklch(0.22 0.05 150), oklch(0.12 0.02 150))', cardGradient: 'linear-gradient(160deg, oklch(0.26 0.06 150), oklch(0.14 0.03 150))', isBoss: false, isNotBoss: true, aiEmoji: '\u{1F441}️' },
+      { id: 'level-analyst', backdropId: 'bd-analyst', num: 3, name: 'Analyst', quote: 'Patterns are beginning to emerge.', desc: 'Tracks your previous choices and predicts what you’ll likely play next.', environment: 'Digital grid, data streams', accent: 'oklch(0.68 0.17 300)', bgGradient: 'linear-gradient(160deg, oklch(0.22 0.06 300), oklch(0.12 0.03 300))', cardGradient: 'linear-gradient(160deg, oklch(0.26 0.07 300), oklch(0.14 0.03 300))', isBoss: false, isNotBoss: true, aiEmoji: '\u{1F4CA}' },
+      { id: 'level-trickster', backdropId: 'bd-trickster', num: 4, name: 'Trickster', quote: 'You think you’ve figured me out?', desc: 'Sometimes intentionally makes bad moves to bait you. Hard to read.', environment: 'Sparks, chaotic embers', accent: 'oklch(0.75 0.16 55)', bgGradient: 'linear-gradient(160deg, oklch(0.24 0.06 55), oklch(0.13 0.03 55))', cardGradient: 'linear-gradient(160deg, oklch(0.28 0.07 55), oklch(0.15 0.03 55))', isBoss: false, isNotBoss: true, aiEmoji: '\u{1F0CF}' },
+      { id: 'level-oracle', backdropId: 'bd-oracle', num: 5, name: 'Oracle', quote: 'I already know your next move.', desc: 'Advanced pattern recognition. Learns across the whole match.', environment: 'Dark red energy fields', accent: 'oklch(0.62 0.19 20)', bgGradient: 'linear-gradient(160deg, oklch(0.2 0.06 20), oklch(0.11 0.03 20))', cardGradient: 'linear-gradient(160deg, oklch(0.24 0.07 20), oklch(0.13 0.03 20))', isBoss: false, isNotBoss: true, aiEmoji: '\u{1F52E}' },
+      { id: 'level-machine', backdropId: 'bd-machine', num: 6, name: 'Machine', quote: 'Adapting...', desc: 'Uses multiple prediction models at once. Extremely adaptive.', environment: 'Futuristic city, neon cyan', accent: 'oklch(0.78 0.15 195)', bgGradient: 'linear-gradient(160deg, oklch(0.16 0.02 195), oklch(0.08 0.01 195))', cardGradient: 'linear-gradient(160deg, oklch(0.2 0.03 195), oklch(0.1 0.02 195))', isBoss: false, isNotBoss: true, aiEmoji: '\u{1F9BE}' },
+      { id: 'level-singularity', backdropId: 'bd-singularity', num: 7, name: 'Singularity', quote: 'I’ve been learning from you since Level One.', desc: 'It remembers everything from your journey. Every trick you’ve relied on can be used against you.', environment: 'Animated galaxy, neural network', accent: 'oklch(0.75 0.13 265)', bgGradient: 'linear-gradient(160deg, oklch(0.17 0.04 265), oklch(0.08 0.02 265))', cardGradient: 'linear-gradient(160deg, oklch(0.16 0.04 265), oklch(0.07 0.02 265))', isBoss: true, isNotBoss: false, aiEmoji: '\u{1F30C}' },
+    ];
+
+    const dots = Array.from({ length: 10 }, (_, i) => ({
+      top: `${(i * 37 + 8) % 90}%`,
+      left: `${(i * 53 + 12) % 90}%`,
+      size: `${6 + (i % 4) * 3}px`,
+      duration: `${3 + (i % 4)}s`,
+      delay: `${(i % 5) * 0.4}s`,
+    }));
+
+    const s = this.state;
+    const currentLevel = levels[s.levelIndex] || levels[0];
+
+    const characters = CHAR_LIST.map((c) => {
+      const chosen = s.playerChar === c.id;
+      return {
+        ...c,
+        bg: chosen ? 'oklch(0.72 0.17 230 / 0.18)' : 'oklch(0.18 0.015 255 / 0.7)',
+        border: chosen ? 'oklch(0.72 0.17 230)' : 'oklch(1 0 0 / 0.1)',
+        select: () => this.selectCharacter(c.id),
+      };
+    });
+
+    const levelDots = levels.map((lv, i) => ({
+      color: i === s.levelIndex ? lv.accent : i <= s.unlockedIndex ? 'oklch(0.55 0.01 255)' : 'oklch(0.3 0.01 255)',
+    }));
+
+    const resultColors = {
+      win: 'oklch(0.72 0.16 150)',
+      lose: 'oklch(0.68 0.2 20)',
+      tie: 'oklch(0.75 0.01 255)',
+    };
+    let resultText = 'Make your move.';
+    let resultColor = 'oklch(0.75 0.01 255)';
+    if (s.roundBusy) {
+      resultText = `${currentLevel.name} is thinking…`;
+    } else if (s.roundResult === 'win') {
+      resultText = 'You win the round!';
+      resultColor = resultColors.win;
+    } else if (s.roundResult === 'lose') {
+      resultText = `${currentLevel.name} wins the round.`;
+      resultColor = resultColors.lose;
+    } else if (s.roundResult === 'tie') {
+      resultText = "It's a tie — go again.";
+      resultColor = resultColors.tie;
+    }
+
+    const scoreDots = Array.from({ length: 5 }, (_, i) => {
+      const r = s.roundLog[i];
+      const color = r === 'win' ? resultColors.win : r === 'lose' ? resultColors.lose : r === 'tie' ? resultColors.tie : 'oklch(1 0 0 / 0.15)';
+      return { color };
+    });
+
+    const charMap = {};
+    CHAR_LIST.forEach((c) => { charMap[c.id] = c.emoji; });
+
+    const winRate = s.totalGames ? Math.round((s.totalWins / s.totalGames) * 100) : 0;
+    const favKey = mostFrequent(Object.entries(s.moveTally).flatMap(([k, v]) => Array(v).fill(k)));
+    const favoriteLabel = s.totalGames && favKey ? favKey[0].toUpperCase() + favKey.slice(1) : '—';
+
+    return {
+      levels,
+      dots,
+      handleTilt: (e) => this.handleTilt(e),
+      resetTilt: (e) => this.resetTilt(e),
+
+      overlayOpen: s.overlayOpen,
+      mobileNavOpen: s.mobileNavOpen,
+      toggleMobileNav: (e) => this.toggleMobileNav(e),
+      closeMobileNav: (e) => this.closeMobileNav(e),
+      mobileNavPlay: (e) => this.mobileNavPlay(e),
+      screen: s.screen,
+      currentLevel,
+      arenaBgGradient: currentLevel.bgGradient,
+      levelDots,
+
+      playerName: s.playerName,
+      onNameInput: (e) => this.onNameInput(e),
+      characters,
+      setupBtnOpacity: s.playerName.trim() && s.playerChar ? 1 : 0.4,
+      startGame: (e) => this.startGame(e),
+      openGame: (e) => this.openGame(e),
+      closeGame: (e) => this.closeGame(e),
+      goToSetup: (e) => this.goToSetup(e),
+      playerAvatarEmoji: charMap[s.playerChar] || '\u{1F642}',
+
+      wins: s.wins,
+      losses: s.losses,
+      scoreDots,
+      roundBusy: s.roundBusy,
+      resultText,
+      resultColor,
+      playerMoveEmoji: s.playerMove ? MOVE_EMOJI[s.playerMove] : '❔',
+      aiMoveEmoji: s.aiMove ? MOVE_EMOJI[s.aiMove] : '❔',
+      movesOpacity: s.roundBusy ? 0.5 : 1,
+      matchOver: s.matchOver,
+      canAdvance: s.matchOver && s.levelWon,
+      canRetry: s.matchOver && !s.levelWon,
+      nextLevelLabel: s.levelIndex >= LEVEL_COUNT - 1 ? 'See Final Results' : 'Next Level ▶',
+      playRock: (e) => this.playRock(e),
+      playPaper: (e) => this.playPaper(e),
+      playScissors: (e) => this.playScissors(e),
+      nextLevel: (e) => this.nextLevel(e),
+      retryLevel: (e) => this.retryLevel(e),
+      playAgain: (e) => this.playAgain(e),
+
+      totalGames: s.totalGames,
+
+      profileAvatar: charMap[s.playerChar] || '\u{1F464}',
+      profileName: s.playerName || 'Guest',
+      profileFacing: s.totalGames ? `Level ${s.unlockedIndex + 1} · Facing ${levels[Math.min(s.unlockedIndex, levels.length - 1)].name}` : 'Not started yet',
+      profileWinRate: winRate,
+      profileFavoriteMove: favoriteLabel,
+      profileStreak: s.streak,
+      profileGamesPlayed: s.totalGames,
+    };
+  }
+}
+</script>
+</body>
+</html>
