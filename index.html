@@ -27,8 +27,10 @@
     --vs-gap: 28px;
   }
   * { box-sizing: border-box; }
+  html, body { height: auto !important; min-height: 100%; }
   html { overflow-x: hidden; }
   body { margin: 0; background: oklch(0.15 0.015 255); color: oklch(0.95 0.01 255); font-family: 'Inter', sans-serif; overflow-x: hidden; scroll-behavior: smooth; }
+  #dc-root, #dc-root > .sc-host { height: auto !important; min-height: 100%; }
   a { text-decoration: none; color: inherit; }
   img, canvas, svg { max-width: 100%; }
   @keyframes floatDot { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-16px); } }
@@ -194,9 +196,9 @@
     <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.04em;">RPS<span style="color: oklch(0.72 0.15 230);">:</span> ASCENSION</div>
     <nav class="nav-links-desktop" style="display: flex; align-items: center; gap: 32px;">
       <a href="#hero" style="font-size: 14px; font-weight: 500; opacity: 0.85;" style-hover="opacity: 1;">Play</a>
-      <a href="#profile-footer" style="font-size: 14px; font-weight: 500; opacity: 0.85;" style-hover="opacity: 1;">Characters</a>
-      <a href="#level-observer" style="font-size: 14px; font-weight: 500; opacity: 0.85;" style-hover="opacity: 1;">Progress</a>
-      <a href="#profile-footer" style="font-size: 14px; font-weight: 500; opacity: 0.85;" style-hover="opacity: 1;">Achievements</a>
+      <a href="#characters-gallery" style="font-size: 14px; font-weight: 500; opacity: 0.85;" style-hover="opacity: 1;">Characters</a>
+      <a href="#progress-track" style="font-size: 14px; font-weight: 500; opacity: 0.85;" style-hover="opacity: 1;">Progress</a>
+      <a href="#achievements" style="font-size: 14px; font-weight: 500; opacity: 0.85;" style-hover="opacity: 1;">Achievements</a>
       <a href="#hero" style="font-size: 14px; font-weight: 500; opacity: 0.85;" style-hover="opacity: 1;">Settings</a>
       <a href="#" onClick="{{ openGame }}" style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 14px; padding: 10px 22px; border-radius: 999px; background: oklch(0.72 0.17 230); color: oklch(0.12 0.02 230);" style-hover="background: oklch(0.78 0.17 230);">Play Now</a>
     </nav>
@@ -207,9 +209,9 @@
     <sc-if value="{{ mobileNavOpen }}">
       <div style="position: absolute; top: 100%; left: 0; right: 0; z-index: 25; background: oklch(0.13 0.015 255 / 0.97); backdrop-filter: blur(14px); border-bottom: 1px solid oklch(1 0 0 / 0.08); padding: 12px 20px 20px; display: flex; flex-direction: column; gap: 4px; animation: navPanelIn 0.2s ease;">
         <a href="#hero" onClick="{{ closeMobileNav }}" style="padding: 12px 4px; font-size: 15px; font-weight: 500;">Play</a>
-        <a href="#profile-footer" onClick="{{ closeMobileNav }}" style="padding: 12px 4px; font-size: 15px; font-weight: 500;">Characters</a>
-        <a href="#level-observer" onClick="{{ closeMobileNav }}" style="padding: 12px 4px; font-size: 15px; font-weight: 500;">Progress</a>
-        <a href="#profile-footer" onClick="{{ closeMobileNav }}" style="padding: 12px 4px; font-size: 15px; font-weight: 500;">Achievements</a>
+        <a href="#characters-gallery" onClick="{{ closeMobileNav }}" style="padding: 12px 4px; font-size: 15px; font-weight: 500;">Characters</a>
+        <a href="#progress-track" onClick="{{ closeMobileNav }}" style="padding: 12px 4px; font-size: 15px; font-weight: 500;">Progress</a>
+        <a href="#achievements" onClick="{{ closeMobileNav }}" style="padding: 12px 4px; font-size: 15px; font-weight: 500;">Achievements</a>
         <a href="#hero" onClick="{{ closeMobileNav }}" style="padding: 12px 4px; font-size: 15px; font-weight: 500;">Settings</a>
         <a href="#" onClick="{{ mobileNavPlay }}" style="margin-top: 8px; text-align: center; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; padding: 12px 24px; border-radius: 999px; background: oklch(0.72 0.17 230); color: oklch(0.12 0.02 230);">Play Now</a>
       </div>
@@ -230,6 +232,39 @@
     </div>
     <div style="position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%); width: 22px; height: 34px; border: 2px solid oklch(1 0 0 / 0.4); border-radius: 12px; z-index: 2;">
       <div style="width: 4px; height: 8px; background: oklch(1 0 0 / 0.6); border-radius: 2px; margin: 6px auto 0; animation: scrollCue 1.6s ease-in-out infinite;"></div>
+    </div>
+  </section>
+
+  <section id="characters-gallery" style="position: relative; z-index: 1; padding: var(--section-pad);">
+    <div style="max-width: 1180px; margin: 0 auto; text-align: center;">
+      <div data-reveal="1" style="font-family: 'Space Grotesk', sans-serif; font-size: 13px; letter-spacing: 0.25em; color: oklch(0.72 0.15 230); font-weight: 600; margin-bottom: 16px;">CHOOSE YOUR FIGHTER</div>
+      <h2 data-reveal="1" style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(32px, 4.5vw, 52px); font-weight: 700; margin: 0 0 16px;">Eight Ways to Outthink the Machine</h2>
+      <p data-reveal="1" style="font-size: 16px; line-height: 1.6; color: oklch(0.75 0.01 255); max-width: 480px; margin: 0 auto 40px;">Pick a fighter now &mdash; it's saved to your profile and ready the next time you play.</p>
+      <div data-reveal="1" style="display: grid; grid-template-columns: var(--char-cols); gap: 14px; max-width: 760px; margin: 0 auto 36px;">
+        <sc-for list="{{ characters }}" as="ch" hint-placeholder-count="8">
+          <div onClick="{{ ch.select }}" class="char-tile" style="padding: 20px 10px; border-radius: 16px; background: {{ ch.bg }}; border: 2px solid {{ ch.border }};">
+            <div style="font-size: 34px; margin-bottom: 8px;">{{ ch.emoji }}</div>
+            <div style="font-size: 13px; font-weight: 600; color: oklch(0.85 0.01 255);">{{ ch.label }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <a href="#" onClick="{{ openGame }}" data-reveal="1" style="display: inline-block; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; padding: 14px 34px; border-radius: 999px; background: oklch(0.72 0.17 230); color: oklch(0.12 0.02 230);">Play as {{ selectedCharLabel }}</a>
+    </div>
+  </section>
+
+  <section id="progress-track" style="position: relative; z-index: 1; padding: var(--section-pad);">
+    <div style="max-width: 1180px; margin: 0 auto; text-align: center;">
+      <div data-reveal="1" style="font-family: 'Space Grotesk', sans-serif; font-size: 13px; letter-spacing: 0.25em; color: oklch(0.72 0.15 230); font-weight: 600; margin-bottom: 16px;">YOUR ASCENSION</div>
+      <h2 data-reveal="1" style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(32px, 4.5vw, 52px); font-weight: 700; margin: 0 0 40px;">Progress Through the Seven Minds</h2>
+      <div data-reveal="1" style="display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;">
+        <sc-for list="{{ progressLevels }}" as="pl" hint-placeholder-count="7">
+          <a href="{{ pl.anchor }}" style="display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 108px; padding: 18px 20px; border-radius: 16px; background: {{ pl.bg }}; border: 2px solid {{ pl.border }}; opacity: {{ pl.opacity }};">
+            <div style="font-size: 20px;">{{ pl.icon }}</div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: oklch(0.6 0.01 255); text-transform: uppercase;">Level {{ pl.num }}</div>
+            <div style="font-size: 14px; font-weight: 600;">{{ pl.name }}</div>
+          </a>
+        </sc-for>
+      </div>
     </div>
   </section>
 
@@ -300,11 +335,10 @@
         </div>
       </div>
 
-      <div data-reveal="1" style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 72px;">
-        <div style="padding: 10px 18px; border-radius: 999px; background: oklch(0.2 0.02 255); border: 1px solid oklch(1 0 0 / 0.08); font-size: 14px;">&#127942; First Victory</div>
-        <div style="padding: 10px 18px; border-radius: 999px; background: oklch(0.2 0.02 255); border: 1px solid oklch(1 0 0 / 0.08); font-size: 14px;">&#128293; 10 Win Streak</div>
-        <div style="padding: 10px 18px; border-radius: 999px; background: oklch(0.2 0.02 255); border: 1px solid oklch(1 0 0 / 0.08); font-size: 14px;">&#129504; Outsmarted Analyst</div>
-        <div style="padding: 10px 18px; border-radius: 999px; background: oklch(0.2 0.02 255); border: 1px solid oklch(1 0 0 / 0.08); font-size: 14px;">&#9889; Perfect Match</div>
+      <div id="achievements" data-reveal="1" style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 72px;">
+        <sc-for list="{{ achievements }}" as="ach" hint-placeholder-count="4">
+          <div style="padding: 10px 18px; border-radius: 999px; background: {{ ach.bg }}; border: 1px solid {{ ach.border }}; font-size: 14px; opacity: {{ ach.opacity }};">{{ ach.emoji }} {{ ach.label }}</div>
+        </sc-for>
       </div>
 
       <div style="display: flex; flex-direction: column; align-items: center; gap: 28px; padding-top: 40px; border-top: 1px solid oklch(1 0 0 / 0.08);">
@@ -459,6 +493,8 @@ class Component extends DCLogic {
       totalGames: (saved && saved.totalGames) || 0,
       totalWins: (saved && saved.totalWins) || 0,
       streak: (saved && saved.streak) || 0,
+      bestStreak: (saved && saved.bestStreak) || 0,
+      hadPerfectMatch: (saved && saved.hadPerfectMatch) || false,
       moveTally: (saved && saved.moveTally) || { rock: 0, paper: 0, scissors: 0 },
     };
     this._arenaActive = false;
@@ -482,9 +518,12 @@ class Component extends DCLogic {
   componentWillUnmount() {
     clearTimeout(this._pollId);
     clearTimeout(this._roundTimeout);
+    clearTimeout(this._rebindId);
     cancelAnimationFrame(this._heroRaf);
     cancelAnimationFrame(this._singRaf);
     this._stopArenaCanvas();
+    if (this._revealTriggers) this._revealTriggers.forEach((t) => t.kill());
+    if (this._backdropTriggers) this._backdropTriggers.forEach((t) => t.kill());
     if (this._heroResize) window.removeEventListener('resize', this._heroResize);
     if (this._singResize) window.removeEventListener('resize', this._singResize);
   }
@@ -507,6 +546,8 @@ class Component extends DCLogic {
         totalGames: this.state.totalGames,
         totalWins: this.state.totalWins,
         streak: this.state.streak,
+        bestStreak: this.state.bestStreak,
+        hadPerfectMatch: this.state.hadPerfectMatch,
         moveTally: this.state.moveTally,
         fullHistory: this.state.fullHistory.slice(-60),
       }));
@@ -628,8 +669,10 @@ class Component extends DCLogic {
     const totalGames = this.state.totalGames + (result === 'tie' ? 0 : 1);
     const totalWins = this.state.totalWins + (result === 'win' ? 1 : 0);
     const streak = result === 'win' ? this.state.streak + 1 : 0;
+    const bestStreak = Math.max(this.state.bestStreak, streak);
     const matchOver = wins >= 3 || losses >= 3;
     const levelWon = wins >= 3;
+    const hadPerfectMatch = this.state.hadPerfectMatch || (matchOver && levelWon && losses === 0);
     let unlockedIndex = this.state.unlockedIndex;
     if (levelWon) unlockedIndex = Math.max(unlockedIndex, Math.min(levelIdx + 1, LEVEL_COUNT - 1));
     this.setState({
@@ -646,6 +689,8 @@ class Component extends DCLogic {
       totalGames,
       totalWins,
       streak,
+      bestStreak,
+      hadPerfectMatch,
       matchOver,
       levelWon,
       unlockedIndex,
@@ -814,18 +859,37 @@ class Component extends DCLogic {
 
   _initAll() {
     gsap.registerPlugin(ScrollTrigger);
+    ScrollTrigger.config({ ignoreMobileResize: true, fastScrollEnd: true });
     this._initReveals();
     this._initBackdrop();
     this._initHeroLight();
     this._initHeroScene();
     this._initSingularityScene();
+    this._scheduleScrollRefresh();
+  }
+
+  _scheduleScrollRefresh() {
+    // The DC runtime does a one-time self-fetch + template swap shortly after
+    // mount, which replaces these DOM nodes and orphans the ScrollTriggers
+    // bound to them. Rebind once that settles, then just refresh positions.
+    const rebind = () => {
+      this._initReveals();
+      this._initBackdrop();
+      ScrollTrigger.refresh();
+    };
+    this._rebindId = setTimeout(rebind, 600);
+    const refresh = () => ScrollTrigger.refresh();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(refresh);
+    window.addEventListener('load', refresh);
   }
 
   _initReveals() {
+    if (this._revealTriggers) this._revealTriggers.forEach((t) => t.kill());
+    this._revealTriggers = [];
     document.querySelectorAll('section[id]').forEach((sec) => {
       const els = sec.querySelectorAll('[data-reveal]');
       if (!els.length) return;
-      gsap.fromTo(
+      const tween = gsap.fromTo(
         els,
         { y: 46, opacity: 0 },
         {
@@ -834,18 +898,21 @@ class Component extends DCLogic {
           duration: 1,
           ease: 'power3.out',
           stagger: 0.12,
-          scrollTrigger: { trigger: sec, start: 'top 78%' },
+          scrollTrigger: { trigger: sec, start: 'top 90%', fastScrollEnd: true },
         }
       );
+      if (tween.scrollTrigger) this._revealTriggers.push(tween.scrollTrigger);
     });
   }
 
   _initBackdrop() {
+    if (this._backdropTriggers) this._backdropTriggers.forEach((t) => t.kill());
+    this._backdropTriggers = [];
     document.querySelectorAll('[data-backdrop-layer]').forEach((layer) => {
       const id = layer.getAttribute('data-backdrop-layer');
       const sec = document.getElementById(id);
       if (!sec) return;
-      ScrollTrigger.create({
+      this._backdropTriggers.push(ScrollTrigger.create({
         trigger: sec,
         start: 'top center',
         end: 'bottom center',
@@ -853,7 +920,7 @@ class Component extends DCLogic {
         onLeave: () => gsap.to(layer, { opacity: 0, duration: 0.8, overwrite: true }),
         onEnterBack: () => gsap.to(layer, { opacity: 1, duration: 0.8, overwrite: true }),
         onLeaveBack: () => gsap.to(layer, { opacity: 0, duration: 0.8, overwrite: true }),
-      });
+      }));
     });
   }
 
@@ -1081,6 +1148,35 @@ class Component extends DCLogic {
       color: i === s.levelIndex ? lv.accent : i <= s.unlockedIndex ? 'oklch(0.55 0.01 255)' : 'oklch(0.3 0.01 255)',
     }));
 
+    const selectedChar = CHAR_LIST.find((c) => c.id === s.playerChar);
+    const selectedCharLabel = selectedChar ? selectedChar.label : 'Now';
+
+    const progressLevels = levels.map((lv, i) => {
+      const cleared = i < s.unlockedIndex;
+      const current = i === s.unlockedIndex;
+      return {
+        num: lv.num,
+        name: lv.name,
+        anchor: '#' + lv.id,
+        icon: cleared ? '✔️' : current ? '⚔️' : '🔒',
+        bg: current ? 'oklch(0.24 0.05 255 / 0.9)' : 'oklch(0.17 0.015 255 / 0.7)',
+        border: current ? lv.accent : cleared ? 'oklch(1 0 0 / 0.2)' : 'oklch(1 0 0 / 0.08)',
+        opacity: cleared || current ? 1 : 0.45,
+      };
+    });
+
+    const achievements = [
+      { emoji: '🏆', label: 'First Victory', unlocked: s.totalWins >= 1 },
+      { emoji: '🔥', label: '10 Win Streak', unlocked: s.bestStreak >= 10 },
+      { emoji: '🧠', label: 'Outsmarted Analyst', unlocked: s.unlockedIndex >= 3 },
+      { emoji: '⚡', label: 'Perfect Match', unlocked: s.hadPerfectMatch },
+    ].map((a) => ({
+      ...a,
+      bg: a.unlocked ? 'oklch(0.72 0.17 230 / 0.16)' : 'oklch(0.2 0.02 255)',
+      border: a.unlocked ? 'oklch(0.72 0.17 230)' : 'oklch(1 0 0 / 0.08)',
+      opacity: a.unlocked ? 1 : 0.45,
+    }));
+
     const resultColors = {
       win: 'oklch(0.72 0.16 150)',
       lose: 'oklch(0.68 0.2 20)',
@@ -1133,6 +1229,9 @@ class Component extends DCLogic {
       playerName: s.playerName,
       onNameInput: (e) => this.onNameInput(e),
       characters,
+      selectedCharLabel,
+      progressLevels,
+      achievements,
       setupBtnOpacity: s.playerName.trim() && s.playerChar ? 1 : 0.4,
       startGame: (e) => this.startGame(e),
       openGame: (e) => this.openGame(e),
